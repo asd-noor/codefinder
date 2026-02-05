@@ -1,0 +1,36 @@
+[tools]
+go = '1.25.6'
+
+[tasks.build]
+description = 'Build the CodeFinder MCP Server'
+outputs = ['codefinder']
+run = 'go build -o codefinder main.go'
+
+[tasks.install]
+depends = ['build']
+description = 'Install the server in "$HOME/.local/bin"'
+usage = '''
+arg "[installdir]" help="Directory to install codefinder" default="$HOME/.local/bin"
+'''
+run = 'install -m 755 codefinder "$installdir"'
+
+[tasks.test]
+description = 'Run all tests'
+run = 'go test ./...'
+
+[tasks.clean]
+description = 'Remove build artifacts'
+run = 'rm -f codefinder'
+
+[tasks.run]
+description = 'Run the CodeFinder MCP Server'
+depends = ['build']
+run = './codefinder'
+
+[tasks.fmt]
+description = 'Format Go code'
+run = 'gofmt -w .'
+
+[tasks.vet]
+description = 'Run go vet'
+run = 'go vet ./...'
