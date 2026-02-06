@@ -22,7 +22,7 @@ func main() {
 	// 1. Setup DB
 	// Try to find git root for project-specific DB
 	projectRoot, err := util.FindGitRoot()
-	dbDir := ".project-hub"
+	dbDir := ".ctxhub"
 	dbName := "codegraph.sqlite"
 	var dbPath string
 	if err == nil && projectRoot != "" {
