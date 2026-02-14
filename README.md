@@ -584,7 +584,7 @@ sudo sysctl -p
 **Problem:** Large codebase causing high memory usage.
 
 **Solution:**
-- Check database size: `du -h .ctxhub/codegraph.sqlite`
+- Check database size: `du -h .ctxhub/codemap.sqlite`
 - Clean old data: `rm -rf .ctxhub/` and re-run
 - For very large codebases (>10k files), consider indexing subdirectories separately
 
@@ -615,7 +615,7 @@ A: Roughly 1MB per 1000 nodes. A typical project with 10k symbols = ~10MB databa
 A: No, SQLite database locking prevents this. Use one instance per workspace.
 
 **Q: Does it preserve the graph between runs?**  
-A: Yes! The SQLite database persists in `.ctxhub/codegraph.sqlite`.
+A: Yes! The SQLite database persists in `.ctxhub/codemap.sqlite`.
 
 **Q: How do I reset the graph?**  
 A: Delete the database: `rm -rf .ctxhub/` and restart CodeMap.

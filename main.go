@@ -44,7 +44,7 @@ func main() {
 	// Try to find git root for project-specific DB
 	projectRoot, err := util.FindGitRoot()
 	dbDir := ".ctxhub"
-	dbName := "codegraph.sqlite"
+	dbName := "codemap.sqlite"
 	var dbPath string
 	if err == nil && projectRoot != "" {
 		dbPath = filepath.Join(projectRoot, dbDir, dbName)
