@@ -21,6 +21,16 @@ import (
 type Service struct {
 	clients map[string]*Client
 	mu      sync.Mutex
+	config  ServiceConfig
+}
+
+// ServiceConfig allows overriding language server command paths.
+type ServiceConfig struct {
+	GoPath         string
+	PythonPath     string
+	TypeScriptPath string
+	LuaPath        string
+	ZigPath        string
 }
 
 // EnrichmentStats provides statistics about the enrichment process.
@@ -33,8 +43,13 @@ type EnrichmentStats struct {
 }
 
 func NewService() *Service {
+	return NewServiceWithConfig(ServiceConfig{})
+}
+
+func NewServiceWithConfig(config ServiceConfig) *Service {
 	return &Service{
 		clients: make(map[string]*Client),
+		config:  config,
 	}
 }
 
@@ -541,7 +556,7 @@ func (s *Service) detectAndStartLanguageServers(ctx context.Context, nodes []*gr
 
 	started := make(map[string]bool)
 	for lang := range langSet {
-		cmdPath, args := getLanguageServerCommand(lang)
+		cmdPath, args := s.getLanguageServerCommand(lang)
 		if cmdPath == "" {
 			continue
 		}
@@ -575,7 +590,7 @@ func (s *Service) validateLanguageServers(requiredLangs map[string]bool) error {
 	var instructions []string
 
 	for lang := range requiredLangs {
-		cmdPath, _ := getLanguageServerCommand(lang)
+		cmdPath, _ := s.getLanguageServerCommand(lang)
 		if cmdPath == "" {
 			continue // Language not supported, skip
 		}
@@ -590,7 +605,7 @@ func (s *Service) validateLanguageServers(requiredLangs map[string]bool) error {
 
 	if len(missing) > 0 {
 		var firstCmd string
-		if cmdPath, _ := getLanguageServerCommand(missing[0]); cmdPath != "" {
+		if cmdPath, _ := s.getLanguageServerCommand(missing[0]); cmdPath != "" {
 			firstCmd = cmdPath
 		} else {
 			firstCmd = "gopls"
@@ -753,6 +768,9 @@ func getLang(path string) string {
 	if len(path) > 4 && path[len(path)-4:] == ".lua" {
 		return "lua"
 	}
+	if len(path) > 4 && path[len(path)-4:] == ".zig" {
+		return "zig"
+	}
 	return ""
 }
 
@@ -769,22 +787,41 @@ func getLanguageID(lang string) string {
 		return "typescript"
 	case "lua":
 		return "lua"
+	case "zig":
+		return "zig"
 	default:
 		return lang
 	}
 }
 
-func getLanguageServerCommand(lang string) (string, []string) {
+func (s *Service) getLanguageServerCommand(lang string) (string, []string) {
 	// Returns command path and args for starting a language server
 	switch lang {
 	case "go":
+		if path := strings.TrimSpace(s.config.GoPath); path != "" {
+			return path, []string{"serve"}
+		}
 		return "gopls", []string{"serve"}
 	case "python":
+		if path := strings.TrimSpace(s.config.PythonPath); path != "" {
+			return path, []string{"--stdio"}
+		}
 		return "pyright-langserver", []string{"--stdio"}
 	case "javascript", "typescript":
+		if path := strings.TrimSpace(s.config.TypeScriptPath); path != "" {
+			return path, []string{"--stdio"}
+		}
 		return "typescript-language-server", []string{"--stdio"}
 	case "lua":
+		if path := strings.TrimSpace(s.config.LuaPath); path != "" {
+			return path, []string{"--stdio"}
+		}
 		return "lua-language-server", []string{"--stdio"}
+	case "zig":
+		if path := strings.TrimSpace(s.config.ZigPath); path != "" {
+			return path, nil
+		}
+		return "zls", nil
 	default:
 		return "", nil
 	}
@@ -801,6 +838,8 @@ func getLanguageServerInstallInstructions(lang string) string {
 		return "npm install -g typescript-language-server typescript"
 	case "lua":
 		return "brew install lua-language-server  # or download from github.com/LuaLS/lua-language-server"
+	case "zig":
+		return "brew install zls  # or build from github.com/zigtools/zls"
 	default:
 		return ""
 	}
@@ -830,4 +869,3 @@ func isInterfaceKind(kind string) bool {
 	// Check if this is an interface/protocol that can be implemented
 	return kind == "interface_declaration" || kind == "protocol_declaration"
 }
-

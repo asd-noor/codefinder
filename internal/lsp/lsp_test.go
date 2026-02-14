@@ -214,6 +214,7 @@ func TestHelperFunctions(t *testing.T) {
 		{"component.tsx", "typescript"},
 		{"component.jsx", "javascript"},
 		{"config.lua", "lua"},
+		{"build.zig", "zig"},
 		{"unknown.txt", ""},
 	}
 
@@ -261,4 +262,3 @@ func TestIsInterfaceKind(t *testing.T) {
 		}
 	}
 }
-

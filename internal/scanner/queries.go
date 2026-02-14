@@ -24,7 +24,7 @@ var Queries = map[string]string{
 		(type_alias_declaration name: (type_identifier) @name) @def
 	`,
 	"zig": `
-		(function_declaration (symbol_declaration name: (identifier) @name)) @def
+		(function_declaration name: (identifier) @name) @def
 	`,
 	"lua": `
 		(function_declaration name: [

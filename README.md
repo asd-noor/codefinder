@@ -7,7 +7,7 @@ CodeMap is a [Model Context Protocol (MCP)](https://modelcontextprotocol.io) ser
 ## Features
 
 🚀 **Automatic Code Graph Generation**
-- Tree-sitter AST parsing for Go, Python, JavaScript, TypeScript, and Lua
+- Tree-sitter AST parsing for Go, Python, JavaScript, TypeScript, Lua, and Zig
 - LSP integration for cross-file reference resolution
 - Real-time graph updates via file watching
 
@@ -46,6 +46,9 @@ npm install -g typescript-language-server typescript
 
 # Lua (macOS)
 brew install lua-language-server
+
+# Zig (macOS)
+brew install zls
 ```
 
 ### Installation
@@ -81,6 +84,13 @@ cd /path/to/your/project
 
 # Or override the project directory
 /path/to/codemap --project-dir /path/to/your/project
+
+# Or override language server paths
+/path/to/codemap --gopls-path /custom/gopls \
+  --pyright-langserver-path /custom/pyright-langserver \
+  --typescript-language-server-path /custom/typescript-language-server \
+  --lua-language-server-path /custom/lua-language-server \
+  --zls-path /custom/zls
 
 # Or via mise
 mise run run
@@ -246,13 +256,13 @@ Find where a symbol is defined.
 
 #### Scanner
 - **Technology:** Tree-sitter for AST parsing
-- **Languages:** Go, Python, JavaScript, TypeScript, Lua
+- **Languages:** Go, Python, JavaScript, TypeScript, Lua, Zig
 - **Performance:** Parses ~100 files/second
 - **Filtering:** Respects `.gitignore`, skips common ignore dirs
 
 #### LSP Integration
 - **Purpose:** Resolve cross-file references and relationships
-- **Servers:** gopls, pyright, typescript-language-server, lua-language-server
+- **Servers:** gopls, pyright, typescript-language-server, lua-language-server, zls
 - **Features:** Definition lookup, implementation tracking, reference finding
 - **Validation:** Hard requirement - fails fast if servers missing
 
@@ -325,6 +335,17 @@ CodeMap **requires** language servers to be installed:
 | Python | pyright | `pip install pyright` |
 | JavaScript/TypeScript | typescript-language-server | `npm install -g typescript-language-server typescript` |
 | Lua | lua-language-server | `brew install lua-language-server` |
+| Zig | zls | `brew install zls` |
+
+### Language Feature Status
+
+| Language | AST Parsing | LSP Enrichment | LSP Server | Custom Path Flag |
+|----------|-------------|----------------|------------|------------------|
+| Go | ✅ | ✅ | gopls | `--gopls-path` |
+| Python | ✅ | ✅ | pyright-langserver | `--pyright-langserver-path` |
+| JavaScript/TypeScript | ✅ | ✅ | typescript-language-server | `--typescript-language-server-path` |
+| Lua | ✅ | ✅ | lua-language-server | `--lua-language-server-path` |
+| Zig | ✅ | ✅ | zls | `--zls-path` |
 
 **Why required?** Without LSP servers, CodeMap cannot generate edges (relationships between symbols), making the graph incomplete and the `find_impact` tool useless.
 
@@ -337,6 +358,7 @@ which gopls                      # Go
 which pyright-langserver         # Python
 which typescript-language-server # TypeScript/JavaScript
 which lua-language-server        # Lua
+which zls                        # Zig
 ```
 
 ## Examples
@@ -555,7 +577,7 @@ go test -race ./...
 **Solution:** Install missing servers:
 ```bash
 # Check which are missing
-which gopls pyright-langserver typescript-language-server lua-language-server
+which gopls pyright-langserver typescript-language-server lua-language-server zls
 
 # Install missing ones (see Requirements section)
 ```
@@ -622,7 +644,7 @@ A: Delete the database: `rm -rf .ctxhub/` and restart CodeMap.
 
 ## Limitations
 
-- **Language support:** Only Go, Python, JS, TS, Lua (more languages can be added)
+- **Language support:** Only Go, Python, JS, TS, Lua, Zig (more languages can be added)
 - **Single workspace:** Designed for one codebase at a time
 - **Local only:** Not designed for remote/distributed use
 - **LSP required:** Cannot generate edges without language servers

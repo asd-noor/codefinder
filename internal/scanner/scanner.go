@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	tslua "github.com/tree-sitter-grammars/tree-sitter-lua/bindings/go"
+	tszig "github.com/tree-sitter-grammars/tree-sitter-zig/bindings/go"
 	sitter "github.com/tree-sitter/go-tree-sitter"
 	tsgo "github.com/tree-sitter/tree-sitter-go/bindings/go"
 	tsjs "github.com/tree-sitter/tree-sitter-javascript/bindings/go"
@@ -40,7 +41,7 @@ func New() (*Scanner, error) {
 	s.languages["ts"] = sitter.NewLanguage(tsts.LanguageTypescript())
 	s.languages["tsx"] = sitter.NewLanguage(tsts.LanguageTSX())
 	s.languages["lua"] = sitter.NewLanguage(tslua.Language())
-	// Zig disabled for now
+	s.languages["zig"] = sitter.NewLanguage(tszig.Language())
 
 	// Compile queries
 	for ext, lang := range s.languages {
@@ -74,6 +75,8 @@ func getLangKey(ext string) string {
 		return "typescript"
 	case "lua":
 		return "lua"
+	case "zig":
+		return "zig"
 	default:
 		return ""
 	}
