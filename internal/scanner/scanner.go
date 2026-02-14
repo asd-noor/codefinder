@@ -127,31 +127,44 @@ func (s *Scanner) ScanFile(ctx context.Context, path string) ([]*graph.Node, err
 		}
 
 		var nameNode sitter.Node
+		var defNode sitter.Node
 		var foundName bool
+		var foundDef bool
 		kind := "symbol"
 
 		for _, capture := range match.Captures {
-			if captureNames[capture.Index] == "name" {
+			switch captureNames[capture.Index] {
+			case "name":
 				nameNode = capture.Node
 				foundName = true
+			case "def":
+				defNode = capture.Node
+				foundDef = true
 			}
 		}
 
 		if foundName {
 			name := nameNode.Utf8Text(content)
-			if parentNode := nameNode.Parent(); parentNode != nil {
+			rangeNode := nameNode
+			if foundDef {
+				kind = defNode.Kind()
+				rangeNode = defNode
+			} else if parentNode := nameNode.Parent(); parentNode != nil {
 				kind = parentNode.Kind()
+				rangeNode = *parentNode
 			}
 
+			startPos := nameNode.StartPosition()
+			endPos := rangeNode.EndPosition()
 			nodes = append(nodes, &graph.Node{
 				ID:        util.GenerateNodeID(relPath, name),
 				Name:      name,
 				Kind:      kind,
 				FilePath:  path,
-				LineStart: int(nameNode.StartPosition().Row) + 1,
-				LineEnd:   int(nameNode.EndPosition().Row) + 1,
-				ColStart:  int(nameNode.StartPosition().Column) + 1,
-				ColEnd:    int(nameNode.EndPosition().Column) + 1,
+				LineStart: int(startPos.Row) + 1,
+				LineEnd:   int(endPos.Row) + 1,
+				ColStart:  int(startPos.Column) + 1,
+				ColEnd:    int(endPos.Column) + 1,
 				SymbolURI: util.PathToURI(path),
 			})
 		}
@@ -235,7 +248,9 @@ func (s *Scanner) Scan(ctx context.Context, root string) ([]*graph.Node, error) 
 			}
 
 			var nameNode sitter.Node
+			var defNode sitter.Node
 			var foundName bool
+			var foundDef bool
 			var kind string = "symbol"
 
 			for _, capture := range match.Captures {
@@ -244,6 +259,9 @@ func (s *Scanner) Scan(ctx context.Context, root string) ([]*graph.Node, error) 
 				if cName == "name" {
 					nameNode = capture.Node
 					foundName = true
+				} else if cName == "def" {
+					defNode = capture.Node
+					foundDef = true
 				}
 			}
 
@@ -252,20 +270,26 @@ func (s *Scanner) Scan(ctx context.Context, root string) ([]*graph.Node, error) 
 				name := nameNode.Utf8Text(content)
 
 				// simple kind inference
-				parentNode := nameNode.Parent()
-				if parentNode != nil {
+				rangeNode := nameNode
+				if foundDef {
+					kind = defNode.Kind()
+					rangeNode = defNode
+				} else if parentNode := nameNode.Parent(); parentNode != nil {
 					kind = parentNode.Kind()
+					rangeNode = *parentNode
 				}
 
+				startPos := nameNode.StartPosition()
+				endPos := rangeNode.EndPosition()
 				node := &graph.Node{
 					ID:        util.GenerateNodeID(relPath, name),
 					Name:      name,
 					Kind:      kind,
 					FilePath:  path, // Store absolute path for LSP compatibility
-					LineStart: int(nameNode.StartPosition().Row) + 1,
-					LineEnd:   int(nameNode.EndPosition().Row) + 1,
-					ColStart:  int(nameNode.StartPosition().Column) + 1,
-					ColEnd:    int(nameNode.EndPosition().Column) + 1,
+					LineStart: int(startPos.Row) + 1,
+					LineEnd:   int(endPos.Row) + 1,
+					ColStart:  int(startPos.Column) + 1,
+					ColEnd:    int(endPos.Column) + 1,
 				}
 				nodes = append(nodes, node)
 			}
