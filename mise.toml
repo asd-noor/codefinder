@@ -10,9 +10,9 @@ run = 'go build -o codemap main.go'
 depends = ['build']
 description = 'Install the server in "$HOME/.local/bin"'
 usage = '''
-arg "[installdir]" help="Directory to install codemap" default="$HOME/.local/bin"
+arg "installdir" help="Directory to install codemap" default="$HOME/.local/bin"
 '''
-run = 'install -m 755 codemap "$installdir"'
+run = 'install -m 755 codemap "{{arg.installdir}}"'
 
 [tasks.test]
 description = 'Run all tests'
