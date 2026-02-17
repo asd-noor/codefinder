@@ -26,7 +26,7 @@ func (s *Server) registerPrompts() {
 				{
 					Role: "user",
 					Content: &mcp.TextContent{
-						Text: fmt.Sprintf("I'm planning to modify %s. Please find its definition using get_symbol_location and then use find_impact to identify all downstream symbols that might be broken or affected by this change.", symbolName),
+						Text: fmt.Sprintf("I'm planning to modify %s. Please find its definition using get_symbol and then use find_impact to identify all downstream symbols that might be broken or affected by this change.", symbolName),
 					},
 				},
 			},
@@ -76,7 +76,7 @@ func (s *Server) registerPrompts() {
 				{
 					Role: "user",
 					Content: &mcp.TextContent{
-						Text: fmt.Sprintf("Where is %s defined? Use get_symbol_location to find it, then use get_symbols_in_file on that file to explain what other symbols are related to it in that context.", symbolName),
+						Text: fmt.Sprintf("Where is %s defined? Use get_symbol to find it, then use get_symbols_in_file on that file to explain what other symbols are related to it in that context.", symbolName),
 					},
 				},
 			},

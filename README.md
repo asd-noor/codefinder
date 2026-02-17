@@ -188,14 +188,15 @@ Find all downstream dependencies of a symbol (recursive).
 ]
 ```
 
-#### 4. `get_symbol_location`
-Find where a symbol is defined.
+#### 4. `get_symbol`
+Find where a symbol is defined and optionally retrieve its source code.
 
 ```json
 {
-  "name": "get_symbol_location",
+  "name": "get_symbol",
   "arguments": {
-    "symbol_name": "ProcessOrder"
+    "symbol_name": "ProcessOrder",
+    "with_source": true
   }
 }
 ```
@@ -210,15 +211,19 @@ Find where a symbol is defined.
     "line_start": 10,
     "line_end": 25,
     "col_start": 0,
-    "col_end": 1
+    "col_end": 1,
+    "source": "func ProcessOrder(order Order) {\n\t// ...\n}"
   }
 ]
 ```
 
 ### Available Resources
 
-#### `mcp://usage-guidelines`
+#### `codemap://usage-guidelines`
 A markdown resource containing the system prompt and operating instructions for AI agents using CodeMap. This is automatically provided to agents to improve their decision-making.
+
+#### `codemap://schemas/{tool_name}`
+JSON schema resources for each available tool (e.g., `codemap://schemas/find_impact`). These provide the exact argument structure expected by each tool, useful for validation and documentation.
 
 ### Available Prompts
 
@@ -263,10 +268,10 @@ Directs the agent to refresh the semantic graph.
 │  │          MCP Server (foreground)              │     │
 │  │  • JSON-RPC over stdio                        │     │
 │  │  • 4 tools: index, get_symbols_in_file,       │     │
-│  │    find_impact, get_symbol_location           │     │
+│  │    find_impact, get_symbol                    │     │
 │  │  • 4 prompts: analyze-impact, explore-file,   │     │
 │  │    locate-and-explain, re-index-workspace     │     │
-│  │  • 1 resource: mcp://usage-guidelines         │     │
+│  │  • 1 resource: codemap://usage-guidelines     │     │
 │  └───────────────────────────────────────────────┘     │
 │                                                        │
 └────────────────────────────────────────────────────────┘
@@ -414,7 +419,7 @@ which zls                        # Zig
 
 ```bash
 {
-  "tool": "get_symbol_location",
+  "tool": "get_symbol",
   "arguments": {"symbol_name": "ValidateUser"}
 }
 

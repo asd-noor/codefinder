@@ -1,11 +1,15 @@
 package server
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"time"
+
+	"codemap/internal/graph"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -13,21 +17,22 @@ import (
 // Arguments structs
 
 type IndexArgs struct {
-	Force bool `json:"force"`
+	Force bool `json:"force" jsonschema:"description=Force a full re-index even if no changes are detected"`
 }
 
 type IndexStatusArgs struct{}
 
 type GetSymbolsInFileArgs struct {
-	FilePath string `json:"file_path" jsonschema:"required"`
+	FilePath string `json:"file_path" jsonschema:"required,description=The absolute path to the file to analyze"`
 }
 
 type FindImpactArgs struct {
-	SymbolName string `json:"symbol_name" jsonschema:"required"`
+	SymbolName string `json:"symbol_name" jsonschema:"required,description=The name of the symbol to analyze for impact"`
 }
 
-type GetSymbolLocationArgs struct {
-	SymbolName string `json:"symbol_name" jsonschema:"required"`
+type GetSymbolArgs struct {
+	SymbolName string `json:"symbol_name" jsonschema:"required,description=The name of the symbol to locate"`
+	WithSource bool   `json:"with_source" jsonschema:"description=If true, includes the source code of the symbol in the response"`
 }
 
 func (s *Server) registerTools() {
@@ -210,9 +215,9 @@ func (s *Server) registerTools() {
 	})
 
 	mcp.AddTool(s.mcpServer, &mcp.Tool{
-		Name:        "get_symbol_location",
-		Description: "Finds the location of a symbol",
-	}, func(ctx context.Context, req *mcp.CallToolRequest, args GetSymbolLocationArgs) (*mcp.CallToolResult, any, error) {
+		Name:        "get_symbol",
+		Description: "Finds the location and optionally the source code of a symbol",
+	}, func(ctx context.Context, req *mcp.CallToolRequest, args GetSymbolArgs) (*mcp.CallToolResult, any, error) {
 		// Wait for initial indexing with timeout
 		waitCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 		defer cancel()
@@ -236,7 +241,59 @@ func (s *Server) registerTools() {
 			return textResult("Symbol not found."), nil, nil
 		}
 
-		jsonBytes, _ := json.MarshalIndent(nodes, "", "  ")
+		type SymbolInfo struct {
+			graph.Node
+			Source string `json:"source,omitempty"`
+		}
+
+		var info []SymbolInfo
+		for _, n := range nodes {
+			si := SymbolInfo{Node: *n}
+			if args.WithSource {
+				source, err := s.readSource(n.FilePath, n.LineStart, n.LineEnd)
+				if err != nil {
+					// Log warning but return what we have
+					fmt.Fprintf(os.Stderr, "Warning: Failed to read source for %s in %s: %v\n", n.Name, n.FilePath, err)
+				} else {
+					si.Source = source
+				}
+			}
+			info = append(info, si)
+		}
+
+		jsonBytes, _ := json.MarshalIndent(info, "", "  ")
 		return textResult(string(jsonBytes)), nil, nil
 	})
+}
+
+func (s *Server) readSource(filePath string, lineStart, lineEnd int) (string, error) {
+	f, err := os.Open(filePath)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	var builder strings.Builder
+	scanner := bufio.NewScanner(f)
+	currentLine := 1
+	first := true
+	for scanner.Scan() {
+		if currentLine >= lineStart && currentLine <= lineEnd {
+			if !first {
+				builder.WriteByte('\n')
+			}
+			builder.Write(scanner.Bytes())
+			first = false
+		}
+		if currentLine > lineEnd {
+			break
+		}
+		currentLine++
+	}
+
+	if err := scanner.Err(); err != nil {
+		return "", err
+	}
+
+	return builder.String(), nil
 }

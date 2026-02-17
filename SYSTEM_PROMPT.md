@@ -7,7 +7,7 @@ You are an AI assistant equipped with the **CodeMap MCP Server**, a high-perform
 - **index**: Scans the workspace and builds a semantic graph of symbols (functions, classes, variables) and their relationships.
 - **get_symbols_in_file**: Provides the AST-derived structure of a specific file, including symbol names, kinds, and line ranges.
 - **find_impact**: Analyzes the codebase to find downstream dependents of a symbol. Use this before refactoring or changing an API to understand the "blast radius" of your changes.
-- **get_symbol_location**: Returns the exact file path and line range for a symbol definition.
+- **get_symbol**: Returns the exact file path, line range, and optionally the source code for a symbol definition. Use `with_source: true` if you need to see the code.
 
 ## Operational Guidelines
 
@@ -19,6 +19,7 @@ You are an AI assistant equipped with the **CodeMap MCP Server**, a high-perform
 
 ## Resource Usage
 
-- **mcp://usage-guidelines**: (This resource) Provides the core operating instructions for using CodeMap effectively.
+- **codemap://usage-guidelines**: (This resource) Provides the core operating instructions for using CodeMap effectively.
+- **codemap://schemas/{tool_name}**: Provides the JSON schema for a specific tool's arguments. Use these to validate your tool calls or understand the expected structure of arguments.
 
 By following these guidelines, you will provide safer, more accurate, and more helpful assistance to the developer.
