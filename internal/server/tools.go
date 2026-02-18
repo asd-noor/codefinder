@@ -17,22 +17,22 @@ import (
 // Arguments structs
 
 type IndexArgs struct {
-	Force bool `json:"force" jsonschema:"description=Force a full re-index even if no changes are detected"`
+	Force bool `json:"force" jsonschema:"description:Force a full re-index even if no changes are detected"`
 }
 
 type IndexStatusArgs struct{}
 
 type GetSymbolsInFileArgs struct {
-	FilePath string `json:"file_path" jsonschema:"required,description=The absolute path to the file to analyze"`
+	FilePath string `json:"file_path" jsonschema:"required,description:The absolute path to the file to analyze"`
 }
 
 type FindImpactArgs struct {
-	SymbolName string `json:"symbol_name" jsonschema:"required,description=The name of the symbol to analyze for impact"`
+	SymbolName string `json:"symbol_name" jsonschema:"required,description:The name of the symbol to analyze for impact"`
 }
 
 type GetSymbolArgs struct {
-	SymbolName string `json:"symbol_name" jsonschema:"required,description=The name of the symbol to locate"`
-	WithSource bool   `json:"with_source" jsonschema:"description=If true, includes the source code of the symbol in the response"`
+	SymbolName string `json:"symbol_name" jsonschema:"required,description:The name of the symbol to locate"`
+	WithSource bool   `json:"with_source" jsonschema:"description:If true, includes the source code of the symbol in the response"`
 }
 
 func (s *Server) registerTools() {
