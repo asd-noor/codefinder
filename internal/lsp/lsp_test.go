@@ -3,6 +3,7 @@ package lsp
 import (
 	"context"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
@@ -10,6 +11,12 @@ import (
 	"codemap/internal/graph"
 	"codemap/util"
 )
+
+// isCommandAvailable checks if a command is available in PATH.
+func isCommandAvailable(cmd string) bool {
+	_, err := exec.LookPath(cmd)
+	return err == nil
+}
 
 func TestLSP_BasicWorkflow(t *testing.T) {
 	// Skip if gopls is not available

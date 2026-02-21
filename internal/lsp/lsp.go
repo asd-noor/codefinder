@@ -13,17 +13,17 @@ import (
 	"sync"
 	"time"
 
-	"codemap/internal/downloader"
 	"codemap/internal/graph"
+	"codemap/internal/pkgmgr"
 	"codemap/util"
 )
 
 // Service manages LSP clients for different languages.
 type Service struct {
-	clients    map[string]*Client
-	mu         sync.Mutex
-	config     ServiceConfig
-	downloader *downloader.Downloader
+	clients map[string]*Client
+	mu      sync.Mutex
+	config  ServiceConfig
+	pkgMgr  *pkgmgr.Manager
 }
 
 // ServiceConfig allows overriding language server command paths.
@@ -49,15 +49,20 @@ func NewService() *Service {
 }
 
 func NewServiceWithConfig(config ServiceConfig) *Service {
-	dl, err := downloader.New()
+	mgr, err := pkgmgr.NewManager()
 	if err != nil {
-		log.Printf("Warning: Failed to initialize downloader: %v", err)
+		log.Printf("Warning: Failed to initialize package manager: %v", err)
 		log.Println("LSP auto-download will not be available")
+	} else {
+		// Add bin directory to PATH
+		if err := mgr.AddToPath(); err != nil {
+			log.Printf("Warning: Failed to add bin directory to PATH: %v", err)
+		}
 	}
 	return &Service{
-		clients:    make(map[string]*Client),
-		config:     config,
-		downloader: dl,
+		clients: make(map[string]*Client),
+		config:  config,
+		pkgMgr:  mgr,
 	}
 }
 
@@ -860,10 +865,10 @@ func (s *Service) getLanguageServerArgs(lang string) []string {
 }
 
 // ensureLSPAvailable ensures an LSP server is available for the given language.
-// Priority: customPath → system PATH → auto-download
+// Priority: customPath → CodeMap packages → system PATH → auto-download
 func (s *Service) ensureLSPAvailable(ctx context.Context, lang, customPath string) (string, error) {
-	if s.downloader == nil {
-		// Fallback to old behavior if downloader failed to initialize
+	if s.pkgMgr == nil {
+		// Fallback to old behavior if package manager failed to initialize
 		cmdPath, _ := s.getLanguageServerCommand(lang)
 		if cmdPath == "" {
 			return "", fmt.Errorf("language not supported: %s", lang)
@@ -871,12 +876,58 @@ func (s *Service) ensureLSPAvailable(ctx context.Context, lang, customPath strin
 		return cmdPath, nil
 	}
 
-	return s.downloader.EnsureLSP(ctx, lang, customPath)
+	// Priority 1: Custom path from flags
+	if customPath != "" {
+		if _, err := os.Stat(customPath); err == nil {
+			log.Printf("[%s] Using custom LSP path: %s", lang, customPath)
+			return customPath, nil
+		}
+		log.Printf("[%s] Custom path not found: %s, falling back...", lang, customPath)
+	}
+
+	// Priority 2: Check if already installed via package manager
+	if installed, _, _ := s.pkgMgr.IsInstalled(lang); installed {
+		binPath, err := s.pkgMgr.GetBinaryPath(lang)
+		if err == nil {
+			log.Printf("[%s] Using package manager LSP: %s", lang, binPath)
+			return binPath, nil
+		}
+	}
+
+	// Priority 3: Check system PATH
+	metadata, err := pkgmgr.GetLSPMetadata(lang)
+	if err != nil {
+		return "", err
+	}
+	
+	if systemPath, err := findInPath(metadata.BinaryName); err == nil {
+		log.Printf("[%s] Using system LSP: %s", lang, systemPath)
+		return systemPath, nil
+	}
+
+	// Priority 4: Download and install via package manager
+	log.Printf("[%s] LSP not found, downloading %s %s...", lang, metadata.Name, metadata.Version)
+	
+	installer := pkgmgr.NewInstaller(s.pkgMgr)
+	if err := installer.Install(ctx, lang, metadata); err != nil {
+		return "", fmt.Errorf("failed to install %s: %w", metadata.Name, err)
+	}
+
+	binPath, err := s.pkgMgr.GetBinaryPath(lang)
+	if err != nil {
+		return "", fmt.Errorf("failed to get installed binary path: %w", err)
+	}
+
+	return binPath, nil
 }
 
-func isCommandAvailable(cmd string) bool {
-	_, err := exec.LookPath(cmd)
-	return err == nil
+// findInPath searches for a binary in the system PATH.
+func findInPath(binaryName string) (string, error) {
+	path, err := exec.LookPath(binaryName)
+	if err != nil {
+		return "", fmt.Errorf("%s not found in PATH", binaryName)
+	}
+	return path, nil
 }
 
 func isDefinitionKind(kind string) bool {

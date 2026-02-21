@@ -33,7 +33,13 @@ CodeMap is a [Model Context Protocol (MCP)](https://modelcontextprotocol.io) ser
 ### Prerequisites
 
 1. Install [mise-en-place](https://mise.jdx.dev/) (recommended for managing tools and tasks).
-2. **Language servers are auto-downloaded** - CodeMap will automatically download and cache LSP servers when needed. No manual installation required!
+2. **Language servers are auto-downloaded** - CodeMap will automatically download and cache LSP servers when needed in `~/.cache/codemap/packages/`. No manual installation required!
+
+**Architecture Highlight:** CodeMap uses a **portable package manager** inspired by mason.nvim:
+- All LSPs installed in `~/.cache/codemap/packages/` (isolated, versioned)
+- Unified `bin/` directory automatically added to PATH
+- **No system pollution** - never creates `~/go` or modifies system directories
+- Respects `$CODEMAP_HOME` for custom install locations
 
 **Optional:** If you prefer to use your own LSP installations, you can install them manually:
 
@@ -54,7 +60,12 @@ brew install lua-language-server
 brew install zls
 ```
 
-CodeMap will automatically detect and use system-installed language servers before downloading.
+CodeMap will automatically detect and use system-installed language servers before downloading. The search priority is:
+
+1. Custom path (via CLI flags like `--gopls-path`)
+2. CodeMap package manager (`~/.cache/codemap/packages/`)  
+3. System PATH
+4. Auto-download (if not found)
 
 ### Installation
 
@@ -74,10 +85,13 @@ go build -o codemap main.go
 ```
 
 That's it! CodeMap will:
-1. Auto-download any missing LSP servers (on first use)
-2. Index your workspace (1-2 seconds)
-3. Start watching for file changes
-4. Launch the MCP server on stdio
+1. Initialize the portable package manager (`~/.cache/codemap/`)
+2. Auto-download any missing LSP servers (on first use)
+3. Index your workspace (1-2 seconds)
+4. Start watching for file changes
+5. Launch the MCP server on stdio
+
+**Package Manager:** All LSPs are installed in `~/.cache/codemap/packages/<name>/<version>/` with executables symlinked to `~/.cache/codemap/bin/`. This ensures complete isolation from system directories.
 
 ## Usage
 
@@ -133,6 +147,44 @@ For Claude Desktop (`~/Library/Application Support/Claude/claude_desktop_config.
     }
   }
 }
+```
+
+### Package Manager
+
+CodeMap includes a **portable package manager** inspired by mason.nvim for managing LSP servers:
+
+**Directory Structure:**
+```
+~/.cache/codemap/  (or $CODEMAP_HOME)
+├── bin/                    # Unified executables (added to PATH)
+├── packages/               # Installed LSP servers (versioned)
+│   ├── gopls/
+│   │   ├── v0.21.1/
+│   │   └── current -> v0.21.1
+│   ├── pyright/
+│   └── ...
+├── registry/               # Package metadata
+└── tmp/                    # Temporary downloads
+```
+
+**Environment Variables:**
+- `CODEMAP_HOME`: Override the default cache directory
+- `XDG_CACHE_HOME`: Respected on Linux/macOS (default: `~/.cache`)
+
+**Key Features:**
+- ✅ Complete isolation - never touches `~/go`, `~/.npm`, or system directories
+- ✅ Automatic version management - each LSP has its own versioned directory
+- ✅ Unified bin directory - all executables symlinked to one location
+- ✅ Cross-platform - works on Linux, macOS, and Windows
+- ✅ Priority system - custom paths → CodeMap packages → system PATH → auto-download
+
+**Custom Install Location:**
+```bash
+# Use a custom directory
+export CODEMAP_HOME=/custom/path/to/codemap
+./codemap
+
+# All LSPs will be installed in /custom/path/to/codemap/packages/
 ```
 
 ### Available Tools
